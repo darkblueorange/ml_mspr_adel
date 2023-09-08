@@ -1,0 +1,107 @@
+<.header>
+  Sélectionnez un parking dans la liste déroulante pour disposer du graphique d'évolution des places :
+</.header>
+<br /><br />
+
+<.form for={@select_parking} phx-change="parking_selected">
+  <.input
+    type="select"
+    label="Liste des parkings"
+    id="parking-list-select-id"
+    name="parking_chosen"
+    prompt="Sélectionnez un parking"
+    value={@selected_parking}
+    options={@select_parking}
+  >
+  </.input>
+</.form>
+<br /><br />
+<%= if (@selected_parking != nil) do %>
+  <.form for={@select_axis_display} phx-change="axis_selected">
+    afficher axe des places: <%= Phoenix.HTML.Form.checkbox(:place_axis, "place_axis_checkbox",
+      name: "place",
+      checked_value: "true",
+      unchecked_value: "false",
+      value: @select_axis_display["place_axis_checkbox"]
+    ) %>
+    <br />afficher taux d'occupation: <%= Phoenix.HTML.Form.checkbox(
+      :availability_axis,
+      "availability_axis_checkbox",
+      name: "taux d'occupation",
+      checked_value: "true",
+      unchecked_value: "false",
+      value: @select_axis_display["availability_axis_checkbox"]
+    ) %>
+    <br />
+    <.live_component
+      module={AdelWeb.Live.VegaGraph}
+      id="vega"
+      selected_parking={@selected_parking}
+      select_axis_display={@select_axis_display}
+      module_name={@module_name}
+    />
+  </.form>
+<% end %>
+<br /><br />
+<br /><br />
+
+<span><.link navigate={~p"/"}>Retour Accueil</.link></span>
+<br />
+<.header>
+  Listing Parkings
+  <:actions>
+    <.link patch={~p"/parkings/new"}>
+      <.button>New Parking</.button>
+    </.link>
+  </:actions>
+</.header>
+
+<.table
+  id="parkings"
+  rows={@streams.parkings}
+  row_click={fn {_id, parking} -> JS.navigate(~p"/parkings/#{parking}") end}
+>
+  <:col :let={{_id, parking}} label="ID"><%= parking.id %></:col>
+  <:col :let={{_id, parking}} label="Nom"><%= parking.nom %></:col>
+  <:col :let={{_id, parking}} label="Places"><%= parking.places %></:col>
+  <:col :let={{_id, parking}} label="Capacite"><%= parking.capacite %></:col>
+  <:col :let={{_id, parking}} label="Derniere mise a jour base">
+    <%= parking.derniere_mise_a_jour_base %>
+  </:col>
+  <:col :let={{_id, parking}} label="Derniere actualisation bo">
+    <%= parking.derniere_actualisation_bo %>
+  </:col>
+  <:col :let={{_id, parking}} label="Taux doccupation"><%= parking.taux_doccupation %></:col>
+  <:col :let={{_id, parking}} label="Geo point 2d"><%= parking.geo_point_2d |> inspect() %></:col>
+  <:col :let={{_id, parking}} label="Parking"><%= parking.parking_id %></:col>
+  <:action :let={{_id, parking}}>
+    <div class="sr-only">
+      <.link navigate={~p"/parkings/#{parking}"}>Show</.link>
+    </div>
+    <.link patch={~p"/parkings/#{parking}/edit"}>Edit</.link>
+  </:action>
+  <:action :let={{id, parking}}>
+    <.link
+      phx-click={JS.push("delete", value: %{id: parking.id}) |> hide("##{id}")}
+      data-confirm="Are you sure?"
+    >
+      Delete
+    </.link>
+  </:action>
+</.table>
+
+<.modal
+  :if={@live_action in [:new, :edit]}
+  id="parking-modal"
+  show
+  on_cancel={JS.patch(~p"/parkings")}
+>
+  <.live_component
+    module={AdelWeb.ParkingLive.FormComponent}
+    id={@parking.id || :new}
+    title={@page_title}
+    action={@live_action}
+    parking={@parking}
+    patch={~p"/parkings"}
+  />
+</.modal>
